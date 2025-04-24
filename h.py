@@ -5,45 +5,49 @@ import tempfile
 from ultralytics import YOLO
 from collections import deque
 import numpy as np
-from pygame import mixer
 import time
 import os
 import plotly.graph_objects as go
+
+# Try to initialize mixer
+try:
+    from pygame import mixer
+    mixer.init()
+    mixer.music.load("alert.mp3")
+    sound_available = True
+except:
+    sound_available = False
 
 # Load YOLO model and class labels
 model = YOLO('yolov5s.pt')
 with open("COCO.txt", "r") as f:
     class_list = f.read().strip().split("\n")
 
-# Initialize alert sound
-mixer.init()
-mixer.music.load("alert.mp3")
-
-# Streamlit dashboard config
+# Streamlit config
 st.set_page_config(page_title="Mansak Amin", layout="wide", page_icon="🕋")
 st.markdown("""
     <h1 style='text-align: center; color: #104E8B;'>🕋 Mansak Amin</h1>
     <h4 style='text-align: center; color: #1E90FF;'>Smart crowd management during Hajj and Umrah</h4>
 """, unsafe_allow_html=True)
 
-# Sidebar: video source selector
+# Sidebar options
 source = st.sidebar.radio("Select Video Source:", ["📁 Upload Video", "📷 Laptop Camera", "📷 External Camera"])
 target_count = 60
 
-# Sidebar: lost person image upload
 st.sidebar.markdown("---")
 uploaded_image = st.sidebar.file_uploader("🔍 Upload image of missing person", type=["jpg", "png", "jpeg"])
 if uploaded_image:
-    st.sidebar.image(uploaded_image, caption="Uploaded Image", use_container_width=True)
+    img = Image.open(uploaded_image).convert("RGB")
+    st.sidebar.image(img, caption="🧍‍♂️ Uploaded Person", use_container_width=True)
 
-# Cards row layout
+# Cards row
 with st.container():
     stats = st.columns(3)
     people_placeholder = stats[0].empty()
     status_placeholder = stats[1].empty()
     time_placeholder = stats[2].empty()
 
-# Simple Tracker
+# Tracker Class
 class Tracker:
     def __init__(self):
         self.id_count = 0
@@ -78,7 +82,8 @@ class Tracker:
         box2_area = (x4 - x3) * (y4 - y3)
         return inter_area / (box1_area + box2_area - inter_area + 1e-5)
 
-# Video processing function
+# Video Processing
+
 def process_video(video_path):
     stframe = st.empty()
     graph_placeholder = st.empty()
@@ -92,6 +97,8 @@ def process_video(video_path):
     last_people_count = 0
 
     cap = cv2.VideoCapture(video_path)
+
+    frame_idx = 0
 
     while cap.isOpened():
         ret, frame = cap.read()
@@ -124,68 +131,62 @@ def process_video(video_path):
         people_count = len(counter)
         elapsed = int(time.time() - start_time)
 
-        # Calculate percentage change
+        # Percentage change
         percentage_change = 0
         if last_people_count > 0:
             percentage_change = ((people_count - last_people_count) / last_people_count) * 100
 
-        # Update cards with dynamic styling and layout
-        people_placeholder.markdown(
-            f"""
-            <div style="background-color: #007BFF; color: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+        # Update UI cards
+        people_placeholder.markdown(f"""
+            <div style="background-color: #007BFF; color: white; padding: 20px; border-radius: 10px;">
                 <h3>👥 Current Count</h3>
                 <h2>{people_count}</h2>
                 <p>📈 Change: {percentage_change:.2f}%</p>
             </div>
-            """, unsafe_allow_html=True
-        )
+        """, unsafe_allow_html=True)
 
-        time_placeholder.markdown(
-            f"""
-            <div style="background-color: #28A745; color: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+        time_placeholder.markdown(f"""
+            <div style="background-color: #28A745; color: white; padding: 20px; border-radius: 10px;">
                 <h3>⏱️ Time Elapsed</h3>
                 <h2>{elapsed // 60:02}:{elapsed % 60:02}</h2>
             </div>
-            """, unsafe_allow_html=True
-        )
+        """, unsafe_allow_html=True)
 
         status = "Overcrowded ⚠️" if people_count >= target_count else "Normal ✅"
-        status_placeholder.markdown(
-            f"""
-            <div style="background-color: #FFC107; color: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+        status_placeholder.markdown(f"""
+            <div style="background-color: #FFC107; color: white; padding: 20px; border-radius: 10px;">
                 <h3>📊 Crowd Status</h3>
                 <h2>{status}</h2>
             </div>
-            """, unsafe_allow_html=True
-        )
+        """, unsafe_allow_html=True)
 
-        # Draw line and people count on video
+        # Draw line
         cv2.line(frame, (0, line_position), (1020, line_position), (0, 255, 0), 2)
         cv2.putText(frame, f"People Count: {people_count}", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
 
-        # Play alert and warning if threshold is reached
+        # Alert
         if people_count >= target_count:
-            if not alert_played:
+            if not alert_played and sound_available:
                 mixer.music.play()
                 alert_played = True
             cv2.putText(frame, "⚠️ Warning: Overcrowding!", (300, 100), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 3)
 
-        # Display frame
         stframe.image(frame, channels="BGR")
 
-        # Append and plot crowd graph
-        people_history.append(people_count)
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(y=people_history, mode='lines+markers', name='People Count'))
-        fig.update_layout(title="Crowd Trend", xaxis_title="Frame", yaxis_title="Count")
-        graph_placeholder.plotly_chart(fig, use_container_width=True, key=f"plot_{len(people_history)}")
+        # Plot crowd every 10 frames
+        if frame_idx % 10 == 0:
+            people_history.append(people_count)
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(y=people_history, mode='lines+markers', name='People Count'))
+            fig.update_layout(title="Crowd Trend", xaxis_title="Frame Group", yaxis_title="Count")
+            graph_placeholder.plotly_chart(fig, use_container_width=True)
 
-        # Update the last people count
         last_people_count = people_count
+        frame_idx += 1
 
     cap.release()
 
-# Handle video input source
+# Handle input sources
 if source == "📁 Upload Video":
     uploaded_file = st.file_uploader("Select a video file", type=["mp4", "avi", "mov"])
     if uploaded_file:
