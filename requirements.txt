@@ -2,7 +2,6 @@ streamlit
 opencv-python-headless
 ultralytics
 Pillow
-pygame
 numpy
 plotly
 streamlit-webrtc
