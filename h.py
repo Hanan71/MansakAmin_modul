@@ -8,6 +8,7 @@ import numpy as np
 from pygame import mixer
 import time
 import os
+import urllib.request
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase, RTCConfiguration
 import av
 import plotly.express as px
@@ -18,10 +19,12 @@ model = YOLO('yolov5s.pt')
 with open("COCO.txt", "r") as f:
     class_list = f.read().strip().split("\n")
 
-# Initialize alert sound
-if detected_people_count > target_count:
-    st.warning("🚨 Warning: Crowd level exceeded!")
-    st.audio(audio_url, format="audio/mp3")
+# Download and initialize alert sound
+mixer.init()
+alert_url = "https://raw.githubusercontent.com/Hanan71/MansakAmin_modul/main/alert.mp3"
+temp_alert_path = os.path.join(tempfile.gettempdir(), "alert.mp3")
+urllib.request.urlretrieve(alert_url, temp_alert_path)
+mixer.music.load(temp_alert_path)
 
 # Dashboard state
 st.set_page_config(page_title="Safe Manasik", layout="wide", page_icon="🕋")
@@ -164,7 +167,6 @@ class VideoTransformer(VideoTransformerBase):
             fig = px.line(graph_df, x="Frame", y="People", title="📈 Live Crowd Trend", markers=True)
             chart_placeholder.plotly_chart(fig, use_container_width=True)
 
-            # Radar Chart (dynamic)
             radar_fig = go.Figure()
             radar_fig.add_trace(go.Scatterpolar(
                 r=[people_count, total_tracked, self.alerts_triggered, target_count],
@@ -193,7 +195,3 @@ else:
         rtc_configuration=RTCConfiguration({"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}),
         media_stream_constraints={"video": {"deviceId": {"exact": device_index}}}
     )
-
-
-import cv2
-print("OpenCV version:", cv2.__version__)
