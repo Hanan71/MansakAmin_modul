@@ -96,7 +96,7 @@ class VideoTransformer(VideoTransformerBase):
         self.graph_data = []
 
     def transform(self, frame):
-        img = frame.to_ndarray(format="bgr24")
+        img = frame.to_ndarray(format="bgr24") if isinstance(frame, av.VideoFrame) else frame
         frame = cv2.resize(img, (1020, 500))
         results = model.predict(frame, verbose=False)
         detections = []
