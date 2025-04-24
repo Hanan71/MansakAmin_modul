@@ -1,6 +1,4 @@
 streamlit
-opencv-python
-opencv-contrib-python
 ultralytics
 Pillow
 pygame
