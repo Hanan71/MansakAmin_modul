@@ -12,7 +12,7 @@ import plotly.graph_objects as go
 
 # Load YOLO model and class labels
 model = YOLO('yolov5s.pt')
-with open("coco.txt", "r") as f:
+with open("COCO.txt", "r") as f:
     class_list = f.read().strip().split("\n")
 
 # Initialize alert sound
