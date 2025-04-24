@@ -186,14 +186,13 @@ if source == "📁 Upload Video":
         with open(video_path, 'wb') as f:
             f.write(video_bytes)
 
-        # هنا نحتاج لتحليل الفيديو مباشرة
         cap = cv2.VideoCapture(video_path)
         while cap.isOpened():
             ret, frame = cap.read()
             if not ret:
                 break
             video_frame = VideoTransformer()
-            frame = video_frame.transform(frame)  # هنا نقوم بتطبيق الـ YOLO وتحليل الإطارات
+            frame = video_frame.transform(frame)
             st.image(frame, channels="BGR")
         cap.release()
 else:
