@@ -19,8 +19,9 @@ with open("COCO.txt", "r") as f:
     class_list = f.read().strip().split("\n")
 
 # Initialize alert sound
-mixer.init()
-mixer.music.load("alert.mp3")
+if detected_people_count > target_count:
+    st.warning("🚨 Warning: Crowd level exceeded!")
+    st.audio(audio_url, format="audio/mp3")
 
 # Dashboard state
 st.set_page_config(page_title="Safe Manasik", layout="wide", page_icon="🕋")
