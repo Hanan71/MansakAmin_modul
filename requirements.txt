@@ -5,6 +5,3 @@ Pillow
 numpy
 plotly
 streamlit-webrtc
-dlib
-mediapipe
-pygame
