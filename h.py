@@ -19,13 +19,13 @@ with open("COCO.txt", "r") as f:
 
 alert_url = "https://raw.githubusercontent.com/Hanan71/MansakAmin_modul/main/alert.mp3"
 
-st.set_page_config(page_title="Safe Manasik", layout="wide", page_icon="🕋")
+st.set_page_config(page_title="Manasak Amin", layout="wide", page_icon="🕋")
 st.markdown("""
     <h1 style='text-align: center; color: #104E8B;'>🕋 Safe Manasik</h1>
     <h4 style='text-align: center; color: #1E90FF;'>Smart system for crowd management during Hajj and Umrah seasons</h4>
 """, unsafe_allow_html=True)
 
-source = st.sidebar.radio("Select Video Source:", ["📁 Upload Video", "📷 Laptop Camera", "📷 External Camera"])
+source = st.sidebar.radio("Select Video Source:", ["📁 Upload Video", "📷 Your Camera", "📷 External Camera"])
 target_count = st.sidebar.slider("🚨 Crowd Threshold", 20, 200, 60, 5)
 
 st.sidebar.markdown("---")
