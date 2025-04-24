@@ -12,7 +12,7 @@ import plotly.graph_objects as go
 
 # Load YOLO model and class labels
 model = YOLO('yolov5s.pt')
-with open("coco.txt", "r") as f:
+with open("COCO.txt", "r") as f:
     class_list = f.read().strip().split("\n")
 
 # Initialize alert sound
@@ -20,9 +20,9 @@ mixer.init()
 mixer.music.load("alert.mp3")
 
 # Streamlit dashboard config
-st.set_page_config(page_title="Safe Manasik", layout="wide", page_icon="🕋")
+st.set_page_config(page_title="Mansak Amin", layout="wide", page_icon="🕋")
 st.markdown("""
-    <h1 style='text-align: center; color: #104E8B;'>🕋 Safe Manasik</h1>
+    <h1 style='text-align: center; color: #104E8B;'>🕋 Mansak Amin</h1>
     <h4 style='text-align: center; color: #1E90FF;'>Smart crowd management during Hajj and Umrah</h4>
 """, unsafe_allow_html=True)
 
