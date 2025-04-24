@@ -6,6 +6,4 @@ numpy
 plotly
 streamlit-webrtc
 face_recognition
-
-
-
+pygame
