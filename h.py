@@ -5,7 +5,6 @@ import tempfile
 from ultralytics import YOLO
 from collections import deque
 import numpy as np
-from pygame import mixer
 import time
 import os
 import urllib.request
@@ -14,30 +13,21 @@ import av
 import plotly.express as px
 import plotly.graph_objects as go
 
-# Load model and labels
 model = YOLO('yolov5s.pt')
 with open("COCO.txt", "r") as f:
     class_list = f.read().strip().split("\n")
 
-# Download and initialize alert sound
-mixer.init()
 alert_url = "https://raw.githubusercontent.com/Hanan71/MansakAmin_modul/main/alert.mp3"
-temp_alert_path = os.path.join(tempfile.gettempdir(), "alert.mp3")
-urllib.request.urlretrieve(alert_url, temp_alert_path)
-mixer.music.load(temp_alert_path)
 
-# Dashboard state
 st.set_page_config(page_title="Safe Manasik", layout="wide", page_icon="🕋")
 st.markdown("""
     <h1 style='text-align: center; color: #104E8B;'>🕋 Safe Manasik</h1>
     <h4 style='text-align: center; color: #1E90FF;'>Smart system for crowd management during Hajj and Umrah seasons</h4>
 """, unsafe_allow_html=True)
 
-# Sidebar for source selection
 source = st.sidebar.radio("Select Video Source:", ["📁 Upload Video", "📷 Laptop Camera", "📷 External Camera"])
 target_count = st.sidebar.slider("🚨 Crowd Threshold", 20, 200, 60, 5)
 
-# Upload image for lost person
 st.sidebar.markdown("---")
 uploaded_image = st.sidebar.file_uploader("🔍 Upload image to search for lost person", type=["jpg", "png", "jpeg"])
 if uploaded_image:
@@ -46,7 +36,6 @@ if uploaded_image:
 else:
     lost_person = None
 
-# Placeholders for live dashboard values
 col1, col2, col3, col4 = st.columns(4)
 current_count_box = col1.empty()
 crowd_threshold_box = col2.empty()
@@ -58,11 +47,9 @@ crowd_threshold_box.metric("Crowd Threshold", target_count)
 alerts_box.metric("Alerts Triggered", 0)
 tracked_box.metric("People Tracked", 0)
 
-# Chart + Radar layout
 chart_placeholder = st.container()
 radar_placeholder = st.container()
 
-# Tracker class
 class Tracker:
     def __init__(self):
         self.id_count = 0
@@ -148,18 +135,24 @@ class VideoTransformer(VideoTransformerBase):
                     cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
 
         if people_count >= target_count and not self.alert_played:
-            mixer.music.play()
             self.alert_played = True
             self.alerts_triggered += 1
+            st.markdown(
+                f"""
+                <audio autoplay>
+                    <source src="{alert_url}" type="audio/mpeg">
+                    Your browser does not support the audio element.
+                </audio>
+                """,
+                unsafe_allow_html=True,
+            )
             cv2.putText(frame, "⚠️ Warning: Overcrowding!", (300, 100),
                         cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 3)
 
-        # Update live metrics
         current_count_box.metric("Current Count", people_count)
         alerts_box.metric("Alerts Triggered", self.alerts_triggered)
         tracked_box.metric("People Tracked", total_tracked)
 
-        # Update chart
         self.frame_count += 1
         if self.frame_count % 10 == 0:
             self.graph_data.append({"Frame": self.frame_count, "People": people_count})
@@ -184,7 +177,6 @@ class VideoTransformer(VideoTransformerBase):
 
         return frame
 
-# Source handling
 if source == "📁 Upload Video":
     st.warning("Video upload is not supported in this mode with dynamic chart.")
 else:
