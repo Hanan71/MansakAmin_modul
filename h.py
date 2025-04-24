@@ -21,7 +21,8 @@ alert_url = "https://raw.githubusercontent.com/Hanan71/MansakAmin_modul/main/ale
 
 st.set_page_config(page_title="Manasak Amin", layout="wide", page_icon="🕋")
 st.markdown("""
-    <h1 style='text-align: center; color: #104E8B;'> img src="img/logo.png" 🕋 Mansak Amin</h1>
+    <a href="#"><img src="img/logo.png" alt=""></a> 
+    <h1 style='text-align: center; color: #104E8B;'> 🕋 Mansak Amin</h1>
     <h4 style='text-align: center; color: #1E90FF;'>Smart system for crowd management during Hajj and Umrah seasons</h4>
 """, unsafe_allow_html=True)
 
