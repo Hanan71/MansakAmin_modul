@@ -5,3 +5,6 @@ Pillow
 numpy
 plotly
 streamlit-webrtc
+opencv-python
+face_recognition
+pygame
