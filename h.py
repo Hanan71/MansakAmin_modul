@@ -178,7 +178,24 @@ class VideoTransformer(VideoTransformerBase):
         return frame
 
 if source == "📁 Upload Video":
-    st.warning("Video upload is not supported in this mode with dynamic chart.")
+    uploaded_video = st.file_uploader("Upload Video", type=["mp4", "mov", "avi"])
+    if uploaded_video:
+        video_bytes = uploaded_video.read()
+        st.video(video_bytes)
+        video_path = tempfile.mktemp(suffix=".mp4")
+        with open(video_path, 'wb') as f:
+            f.write(video_bytes)
+
+        # هنا نحتاج لتحليل الفيديو مباشرة
+        cap = cv2.VideoCapture(video_path)
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+            video_frame = VideoTransformer()
+            frame = video_frame.transform(frame)  # هنا نقوم بتطبيق الـ YOLO وتحليل الإطارات
+            st.image(frame, channels="BGR")
+        cap.release()
 else:
     device_index = 0 if source == "📷 Laptop Camera" else 1
     webrtc_streamer(
@@ -187,3 +204,4 @@ else:
         rtc_configuration=RTCConfiguration({"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}),
         media_stream_constraints={"video": {"deviceId": {"exact": device_index}}}
     )
+
