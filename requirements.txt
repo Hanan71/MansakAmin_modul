@@ -5,7 +5,3 @@ Pillow
 numpy
 plotly
 streamlit-webrtc
-opencv-python
-face_recognition_models
-dlib
-cmake
