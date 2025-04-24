@@ -6,5 +6,6 @@ numpy
 plotly
 streamlit-webrtc
 opencv-python
-face_recognition
-pygame
+face_recognition_models
+dlib
+cmake
