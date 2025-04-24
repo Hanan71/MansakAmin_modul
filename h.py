@@ -165,24 +165,26 @@ class VideoTransformer(VideoTransformerBase):
 
         return frame_resized
 
+# تحديد مصدر الفيديو
 if source == "📁 Upload Video":
     uploaded_video = st.file_uploader("Upload Video", type=["mp4", "mov", "avi"])
     if uploaded_video:
         video_bytes = uploaded_video.read()
         st.video(video_bytes)
+
         video_path = tempfile.mktemp(suffix=".mp4")
         with open(video_path, 'wb') as f:
             f.write(video_bytes)
 
-        cap = cv2.VideoCapture(video_path)
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                break
-            video_frame = VideoTransformer()
-            frame = video_frame.transform(frame)
-            st.image(frame, channels="BGR")
-        cap.release()
+        webrtc_streamer(
+            key="video-upload",
+            video_processor_factory=VideoTransformer,
+            rtc_configuration=RTCConfiguration({
+                "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
+            }),
+            media_stream_constraints={"video": {"deviceId": {"exact": video_path}}}
+        )
+
 else:
     device_index = 0 if source == "📷 Laptop Camera" else 1
     webrtc_streamer(
