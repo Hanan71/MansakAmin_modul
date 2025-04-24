@@ -1,3 +1,8 @@
 streamlit
-ultralytics
 opencv-python
+ultralytics
+Pillow
+pygame
+numpy
+plotly
+streamlit-webrtc
