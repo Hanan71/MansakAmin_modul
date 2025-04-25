@@ -5,3 +5,4 @@ Pillow
 numpy
 plotly
 streamlit-webrtc
+timedelta
