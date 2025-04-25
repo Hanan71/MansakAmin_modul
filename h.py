@@ -5,21 +5,23 @@ import tempfile
 from ultralytics import YOLO
 from collections import deque
 import numpy as np
+from pygame import mixer
 import time
 import os
-import urllib.request
-from streamlit_webrtc import webrtc_streamer, VideoTransformerBase, RTCConfiguration
-import av
-import plotly.express as px
 import plotly.graph_objects as go
 import threading
 from datetime import datetime, timedelta
 
 model = YOLO('yolov5s.pt')
-with open("COCO.txt", "r") as f:
+with open("coco.txt", "r") as f:
     class_list = f.read().strip().split("\n")
 
-
+# تأكد من تهيئة mixer بشكل صحيح
+try:
+    mixer.init()
+    mixer.music.load("alert.mp3")
+except Exception as e:
+    st.error(f"حدث خطأ أثناء تحميل الصوت: {e}")
 
 st.set_page_config(page_title="Safe Manasik", layout="wide", page_icon="🕋")
 st.markdown("""
@@ -298,5 +300,3 @@ elif source == "📷 Laptop Camera":
 
 elif source == "📷 External Camera":
     process_video(1)
-
-
