@@ -16,27 +16,26 @@ model = YOLO('yolov5s.pt')
 with open("coco.txt", "r") as f:
     class_list = f.read().strip().split("\n")
 
-# تأكد من تهيئة mixer بشكل صحيح
-try:
-    mixer.init()
-    mixer.music.load("alert.mp3")
-except Exception as e:
-    st.error(f"حدث خطأ أثناء تحميل الصوت: {e}")
 
-st.set_page_config(page_title="Safe Manasik", layout="wide", page_icon="🕋")
+alert_url = "https://raw.githubusercontent.com/Hanan71/MansakAmin_modul/main/alert.mp3"
+
+st.set_page_config(page_title="Manasak Amin", layout="wide", page_icon="🕋")
 st.markdown("""
-    <h1 style='text-align: center; color: #104E8B;'>🕋 Safe Manasik</h1>
-    <h4 style='text-align: center; color: #1E90FF;'>Smart crowd management during Hajj and Umrah</h4>
+
+    <h1 style='text-align: center; color: #104E8B;'> 🕋 Mansak Amin</h1>
+    <h4 style='text-align: center; color: #1E90FF;'>Smart system for crowd management during Hajj and Umrah seasons</h4>
 """, unsafe_allow_html=True)
 
-source = st.sidebar.radio("Select Video Source:", ["📁 Upload Video", "📷 Laptop Camera", "📷 External Camera"])
-target_count = 60
-update_interval = 1
+source = st.sidebar.radio("Select Video Source:", ["📁 Upload Video", "📷 Your Camera", "📷 External Camera"])
+target_count = st.sidebar.slider("🚨 Crowd Threshold", 20, 200, 60, 5)
 
 st.sidebar.markdown("---")
 uploaded_image = st.sidebar.file_uploader("🔍 Upload image of missing person", type=["jpg", "png", "jpeg"])
 if uploaded_image:
     st.sidebar.image(uploaded_image, caption="Uploaded Image", use_column_width=True)
+else:
+    lost_person = None
+    
 
 with st.container():
     stats = st.columns(4)
