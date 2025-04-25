@@ -8,7 +8,7 @@ import numpy as np
 import time
 from datetime import timedelta
 import os
-import urllib.request
+import pygame  # إضافة مكتبة pygame
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase, RTCConfiguration
 import av
 import plotly.express as px
@@ -16,11 +16,15 @@ import plotly.graph_objects as go
 import threading
 from datetime import datetime, timedelta
 
+# تهيئة مكتبة pygame
+pygame.mixer.init()
+
+# تحميل ملف التنبيه الصوتي من داخل المشروع
+pygame.mixer.music.load("alert.mp3")
+
 model = YOLO('yolov5s.pt')
 with open("COCO.txt", "r") as f:
     class_list = f.read().strip().split("\n")
-
-alert_url = "https://raw.githubusercontent.com/Hanan71/MansakAmin_modul/main/alert.mp3"
 
 st.set_page_config(page_title="Mansak Amin", layout="wide", page_icon="🕋")
 st.markdown("""
@@ -248,7 +252,7 @@ def process_video(video_path):
 
         if people_count >= target_count:
             if not alert_played:
-                mixer.music.play()
+                pygame.mixer.music.play()  # تشغيل الصوت
                 alert_played = True
             cv2.putText(frame, "⚠️ Warning: Overcrowding!", (300, 100), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 3)
         else:
@@ -277,7 +281,7 @@ def process_video(video_path):
                 xaxis_title="Time",
                 yaxis_title="People Count"
             )
-    
+            
 
         last_people_count = people_count
 
@@ -300,4 +304,3 @@ elif source == "📷 Laptop Camera":
 
 elif source == "📷 External Camera":
     process_video(1)
-
