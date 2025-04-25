@@ -5,7 +5,6 @@ import tempfile
 from ultralytics import YOLO
 from collections import deque
 import numpy as np
-from pygame import mixer
 import time
 import os
 import plotly.graph_objects as go
