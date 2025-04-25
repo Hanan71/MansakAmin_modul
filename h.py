@@ -19,7 +19,7 @@ model = YOLO('yolov5s.pt')
 with open("COCO.txt", "r") as f:
     class_list = f.read().strip().split("\n")
 
-mixer.music.load("alert.mp3")
+
 
 st.set_page_config(page_title="Safe Manasik", layout="wide", page_icon="🕋")
 st.markdown("""
