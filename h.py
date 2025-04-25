@@ -277,7 +277,7 @@ def process_video(video_path):
                 xaxis_title="Time",
                 yaxis_title="People Count"
             )
-            graph_placeholder.plotly_chart(fig_crowd, use_container_width=True)
+    
 
         last_people_count = people_count
 
@@ -289,13 +289,15 @@ def process_video(video_path):
 if source == "📁 Upload Video":
     uploaded_file = st.file_uploader("Select a video file", type=["mp4", "avi", "mov"])
     if uploaded_file:
-        tfile = tempfile.NamedTemporaryFile(delete=False)
-        tfile.write(uploaded_file.read())
-        process_video(tfile.name)
-        os.unlink(tfile.name)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tfile:
+            tfile.write(uploaded_file.read())
+            temp_video_path = tfile.name
+        process_video(temp_video_path)
+        os.unlink(temp_video_path)
 
 elif source == "📷 Laptop Camera":
     process_video(0)
 
 elif source == "📷 External Camera":
     process_video(1)
+
