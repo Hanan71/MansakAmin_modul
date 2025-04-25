@@ -16,7 +16,7 @@ import threading
 from datetime import datetime, timedelta
 
 model = YOLO('yolov5s.pt')
-with open("coco.txt", "r") as f:
+with open("COCO.txt", "r") as f:
     class_list = f.read().strip().split("\n")
 
 mixer.init()
