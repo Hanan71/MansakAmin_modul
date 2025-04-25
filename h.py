@@ -13,43 +13,78 @@ import av
 import plotly.express as px
 import plotly.graph_objects as go
 
+
 model = YOLO('yolov5s.pt')
-with open("COCO.txt", "r") as f:
+with open("coco.txt", "r") as f:
     class_list = f.read().strip().split("\n")
 
-alert_url = "https://raw.githubusercontent.com/Hanan71/MansakAmin_modul/main/alert.mp3"
+mixer.init()
+mixer.music.load("alert.mp3")
 
-st.set_page_config(page_title="Manasak Amin", layout="wide", page_icon="🕋")
+st.set_page_config(page_title="Safe Manasik", layout="wide", page_icon="🕋")
 st.markdown("""
-
-    <h1 style='text-align: center; color: #104E8B;'> 🕋 Mansak Amin</h1>
-    <h4 style='text-align: center; color: #1E90FF;'>Smart system for crowd management during Hajj and Umrah seasons</h4>
+    <h1 style='text-align: center; color: #104E8B;'>🕋 Safe Manasik</h1>
+    <h4 style='text-align: center; color: #1E90FF;'>Smart crowd management during Hajj and Umrah</h4>
 """, unsafe_allow_html=True)
 
-source = st.sidebar.radio("Select Video Source:", ["📁 Upload Video", "📷 Your Camera", "📷 External Camera"])
-target_count = st.sidebar.slider("🚨 Crowd Threshold", 20, 200, 60, 5)
+source = st.sidebar.radio("Select Video Source:", ["📁 Upload Video", "📷 Laptop Camera", "📷 External Camera"])
+target_count = 60
+update_interval = 1
 
 st.sidebar.markdown("---")
-uploaded_image = st.sidebar.file_uploader("🔍 Upload image to search for lost person", type=["jpg", "png", "jpeg"])
+uploaded_image = st.sidebar.file_uploader("🔍 Upload image of missing person", type=["jpg", "png", "jpeg"])
 if uploaded_image:
-    lost_person = Image.open(uploaded_image).convert("RGB")
-    st.sidebar.image(lost_person, caption="Uploaded Image", use_container_width=True)
-else:
-    lost_person = None
+    st.sidebar.image(uploaded_image, caption="Uploaded Image", use_column_width=True)
 
-col1, col2, col3, col4 = st.columns(4)
-current_count_box = col1.empty()
-crowd_threshold_box = col2.empty()
-alerts_box = col3.empty()
-tracked_box = col4.empty()
+with st.container():
+    stats = st.columns(4)
+    people_placeholder = stats[0].empty()
+    status_placeholder = stats[1].empty()
+    time_placeholder = stats[2].empty()
+    accuracy_placeholder = stats[3].empty()
 
-current_count_box.metric("Current Count", 0)
-crowd_threshold_box.metric("Crowd Threshold", target_count)
-alerts_box.metric("Alerts Triggered", 0)
-tracked_box.metric("People Tracked", 0)
+if 'minute_data' not in st.session_state:
+    st.session_state.minute_data = {
+        'timestamps': [],
+        'people_counts': [],
+        'avg_accuracies': [],
+        'start_time': datetime.now()
+    }
 
-chart_placeholder = st.container()
-radar_placeholder = st.container()
+class CameraThread(threading.Thread):
+    def __init__(self, src=0):
+        super().__init__()
+        self.src = src
+        self.frame = None
+        self.running = False
+        self.backends = [cv2.CAP_DSHOW, cv2.CAP_MSMF, cv2.CAP_V4L2]
+        
+    def run(self):
+        self.running = True
+        cap = None
+        for backend in self.backends:
+            cap = cv2.VideoCapture(self.src, backend)
+            if cap.isOpened():
+                break
+                
+        if not cap or not cap.isOpened():
+            st.error("Failed to open camera!")
+            self.running = False
+            return
+            
+        while self.running:
+            ret, frame = cap.read()
+            if ret:
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                if np.mean(frame[:,:,1]) > np.mean(frame[:,:,0]) + 20:
+                    frame[:,:,1] = cv2.multiply(frame[:,:,1], 0.7)
+                    frame[:,:,0] = cv2.multiply(frame[:,:,0], 1.1)
+                    frame[:,:,2] = cv2.multiply(frame[:,:,2], 1.1)
+                self.frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+                
+    def stop(self):
+        self.running = False
+        self.join()
 
 class Tracker:
     def __init__(self):
@@ -85,122 +120,183 @@ class Tracker:
         box2_area = (x4 - x3) * (y4 - y3)
         return inter_area / (box1_area + box2_area - inter_area + 1e-5)
 
-class VideoTransformer(VideoTransformerBase):
-    def __init__(self):
-        self.tracker = Tracker()
-        self.counter = deque(maxlen=1000)
-        self.line_position = 380
-        self.offset = 6
-        self.alert_played = False
-        self.alerts_triggered = 0
-        self.frame_count = 0
-        self.graph_data = []
+def update_minute_data(current_count, current_accuracy):
+    now = datetime.now()
+    elapsed = now - st.session_state.minute_data['start_time']
+    
+    if elapsed >= timedelta(minutes=update_interval):
+        st.session_state.minute_data['timestamps'].append(now.strftime("%H:%M"))
+        st.session_state.minute_data['people_counts'].append(current_count)
+        st.session_state.minute_data['avg_accuracies'].append(current_accuracy)
+        st.session_state.minute_data['start_time'] = now
 
-    def transform(self, frame):
-        img = frame.to_ndarray(format="bgr24") if isinstance(frame, av.VideoFrame) else frame
-        frame = cv2.resize(img, (1020, 500))
+def process_video(video_path):
+    stframe = st.empty()
+    graph_placeholder = st.empty()
+    tracker = Tracker()
+    counter = deque(maxlen=1000)
+    line_position = 380
+    offset = 6
+    alert_played = False
+    start_time = time.time()
+    last_people_count = 0
+
+    if isinstance(video_path, int):
+        cam_thread = CameraThread(video_path)
+        cam_thread.start()
+        time.sleep(2)
+    else:
+        cap = cv2.VideoCapture(video_path)
+
+    color_correction = st.sidebar.checkbox("Enable Advanced Color Correction", value=True)
+
+    while True:
+        if isinstance(video_path, int):
+            if cam_thread.frame is None:
+                continue
+            frame = cam_thread.frame.copy()
+        else:
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+        if color_correction and isinstance(video_path, int):
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame[:,:,1] = cv2.multiply(frame[:,:,1], 0.8)
+            frame[:,:,0] = cv2.multiply(frame[:,:,0], 1.1)
+            frame[:,:,2] = cv2.multiply(frame[:,:,2], 1.1)
+            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+
+        frame = cv2.resize(frame, (1020, 500))
         results = model.predict(frame, verbose=False)
         detections = []
+        confidences = []
 
-        boxes = results[0].boxes
-        if boxes is not None:
-            for box in boxes:
-                x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
-                cls = int(box.cls[0].cpu().numpy())
-                if class_list[cls] == "person":
-                    crop = frame[int(y1):int(y2), int(x1):int(x2)]
-                    detections.append([int(x1), int(y1), int(x2), int(y2)])
-                    if lost_person is not None:
-                        crop_pil = Image.fromarray(cv2.cvtColor(crop, cv2.COLOR_BGR2RGB))
-                        crop_pil = crop_pil.resize(lost_person.size)
-                        diff = np.mean(np.abs(np.array(crop_pil) - np.array(lost_person)))
-                        if diff < 25:
-                            cv2.putText(frame, "🔎 Match Found!", (x1, y1 - 25), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+        for box in results[0].boxes:
+            x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
+            conf = box.conf[0].cpu().numpy()
+            cls = box.cls[0].cpu().numpy()
+            if class_list[int(cls)] == "person":
+                detections.append([int(x1), int(y1), int(x2), int(y2)])
+                confidences.append(conf)
 
-        tracked_objects = self.tracker.update(detections)
+        avg_accuracy = np.mean(confidences) if len(confidences) > 0 else 0
+        tracked_objects = tracker.update(detections)
+
         for obj in tracked_objects:
             x1, y1, x2, y2, obj_id = obj
             cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
             cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
             cv2.putText(frame, f"ID {obj_id}", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
 
-            if self.line_position - self.offset < cy < self.line_position + self.offset and obj_id not in self.counter:
-                self.counter.append(obj_id)
+            if line_position - offset < cy < line_position + offset and obj_id not in counter:
+                counter.append(obj_id)
                 cv2.circle(frame, (cx, cy), 4, (0, 0, 255), -1)
 
-        people_count = len(self.counter)
-        total_tracked = len(set(self.counter))
+        people_count = len(counter)
+        elapsed_seconds = int(time.time() - start_time)
+        update_minute_data(people_count, avg_accuracy)
 
-        cv2.line(frame, (0, self.line_position), (1020, self.line_position), (0, 255, 0), 2)
-        cv2.putText(frame, f"People Count: {people_count}", (20, 40),
-                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
+        percentage_change = 0
+        if last_people_count > 0:
+            percentage_change = ((people_count - last_people_count) / last_people_count) * 100
 
-        if people_count >= target_count and not self.alert_played:
-            self.alert_played = True
-            self.alerts_triggered += 1
-            st.markdown(
-                f"""
-                <audio autoplay>
-                    <source src="{alert_url}" type="audio/mpeg">
-                    Your browser does not support the audio element.
-                </audio>
-                """,
-                unsafe_allow_html=True,
-            )
-            cv2.putText(frame, "⚠️ Warning: Overcrowding!", (300, 100),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 3)
+        people_placeholder.markdown(
+            f"""
+            <div style="background-color: #007BFF; color: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+                <h3>👥 Current Count</h3>
+                <h2>{people_count}</h2>
+                <p>📈 Change: {percentage_change:.2f}%</p>
+            </div>
+            """, unsafe_allow_html=True
+        )
 
-        current_count_box.metric("Current Count", people_count)
-        alerts_box.metric("Alerts Triggered", self.alerts_triggered)
-        tracked_box.metric("People Tracked", total_tracked)
+        time_placeholder.markdown(
+            f"""
+            <div style="background-color: #28A745; color: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+                <h3>⏱️ Time Elapsed</h3>
+                <h2>{elapsed_seconds // 60:02}:{elapsed_seconds % 60:02}</h2>
+            </div>
+            """, unsafe_allow_html=True
+        )
 
-        self.frame_count += 1
-        if self.frame_count % 10 == 0:
-            self.graph_data.append({"Frame": self.frame_count, "People": people_count})
-            graph_df = self.graph_data[-30:]
-            fig = px.line(graph_df, x="Frame", y="People", title="📈 Live Crowd Trend", markers=True)
-            chart_placeholder.plotly_chart(fig, use_container_width=True)
+        status = "Overcrowded ⚠️" if people_count >= target_count else "Normal ✅"
+        status_color = "#FFC107" if status == "Normal ✅" else "#DC3545"
+        status_placeholder.markdown(
+            f"""
+            <div style="background-color: {status_color}; color: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+                <h3>📊 Crowd Status</h3>
+                <h2>{status}</h2>
+            </div>
+            """, unsafe_allow_html=True
+        )
 
-            radar_fig = go.Figure()
-            radar_fig.add_trace(go.Scatterpolar(
-                r=[people_count, total_tracked, self.alerts_triggered, target_count],
-                theta=["Current", "Tracked", "Alerts", "Threshold"],
-                fill='toself',
-                name='Live Metrics'
+        accuracy_placeholder.markdown(
+            f"""
+            <div style="background-color: #6F42C1; color: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+                <h3>🎯 Detection Accuracy</h3>
+                <h2>{avg_accuracy:.2%}</h2>
+                <p>Based on {len(confidences)} detections</p>
+            </div>
+            """, unsafe_allow_html=True
+        )
+
+        cv2.line(frame, (0, line_position), (1020, line_position), (0, 255, 0), 2)
+        cv2.putText(frame, f"People Count: {people_count}", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
+        cv2.putText(frame, f"Accuracy: {avg_accuracy:.2%}", (20, 80), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
+
+        if people_count >= target_count:
+            if not alert_played:
+                mixer.music.play()
+                alert_played = True
+            cv2.putText(frame, "⚠️ Warning: Overcrowding!", (300, 100), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 3)
+        else:
+            alert_played = False
+
+        stframe.image(frame, channels="BGR")
+
+        if len(st.session_state.minute_data['timestamps']) > 0:
+            fig_crowd = go.Figure()
+            fig_crowd.add_trace(go.Scatter(
+                x=st.session_state.minute_data['timestamps'],
+                y=st.session_state.minute_data['people_counts'],
+                mode='lines+markers',
+                name='People Count',
+                line=dict(color='blue')
             ))
-            radar_fig.update_layout(
-                polar=dict(radialaxis=dict(visible=True, range=[0, max(200, people_count + 10)])),
-                showlegend=False,
-                height=300,
-                title="📊 Radar View of Key Stats"
+            fig_crowd.add_trace(go.Scatter(
+                x=st.session_state.minute_data['timestamps'],
+                y=[target_count]*len(st.session_state.minute_data['timestamps']),
+                mode='lines',
+                name='Threshold',
+                line=dict(color='red', dash='dash')
+            ))
+            fig_crowd.update_layout(
+                title="Crowd Trend (Updated every minute)",
+                xaxis_title="Time",
+                yaxis_title="People Count"
             )
-            radar_placeholder.plotly_chart(radar_fig, use_container_width=True)
+            graph_placeholder.plotly_chart(fig_crowd, use_container_width=True)
 
-        return frame
+        last_people_count = people_count
+
+    if isinstance(video_path, int):
+        cam_thread.stop()
+    else:
+        cap.release()
 
 if source == "📁 Upload Video":
-    uploaded_video = st.file_uploader("Upload Video", type=["mp4", "mov", "avi"])
-    if uploaded_video:
-        video_bytes = uploaded_video.read()
-        st.video(video_bytes)
-        video_path = tempfile.mktemp(suffix=".mp4")
-        with open(video_path, 'wb') as f:
-            f.write(video_bytes)
+    uploaded_file = st.file_uploader("Select a video file", type=["mp4", "avi", "mov"])
+    if uploaded_file:
+        tfile = tempfile.NamedTemporaryFile(delete=False)
+        tfile.write(uploaded_file.read())
+        process_video(tfile.name)
+        os.unlink(tfile.name)
 
-        cap = cv2.VideoCapture(video_path)
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                break
-            video_frame = VideoTransformer()
-            frame = video_frame.transform(frame)
-            st.image(frame, channels="BGR")
-        cap.release()
-else:
-    device_index = 0 if source == "📷 Laptop Camera" else 1
-    webrtc_streamer(
-        key="camera",
-        video_processor_factory=VideoTransformer,
-        rtc_configuration=RTCConfiguration({"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}),
-        media_stream_constraints={"video": {"deviceId": {"exact": device_index}}}
-    )
+elif source == "📷 Laptop Camera":
+    process_video(0)
+
+elif source == "📷 External Camera":
+    process_video(1)
+
+
