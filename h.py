@@ -8,7 +8,8 @@ import numpy as np
 import time
 from datetime import timedelta
 import os
-import pygame  # إضافة مكتبة pygame
+import streamlit as st
+import requests
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase, RTCConfiguration
 import av
 import plotly.express as px
@@ -16,15 +17,11 @@ import plotly.graph_objects as go
 import threading
 from datetime import datetime, timedelta
 
-# تهيئة مكتبة pygame
-pygame.mixer.init()
-
-# تحميل ملف التنبيه الصوتي من داخل المشروع
-pygame.mixer.music.load("alert.mp3")
 
 model = YOLO('yolov5s.pt')
 with open("COCO.txt", "r") as f:
     class_list = f.read().strip().split("\n")
+    
 
 st.set_page_config(page_title="Mansak Amin", layout="wide", page_icon="🕋")
 st.markdown("""
@@ -250,15 +247,21 @@ def process_video(video_path):
         cv2.putText(frame, f"People Count: {people_count}", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
         cv2.putText(frame, f"Accuracy: {avg_accuracy:.2%}", (20, 80), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
 
-        if people_count >= target_count:
-            if not alert_played:
-                pygame.mixer.music.play()  # تشغيل الصوت
-                alert_played = True
-            cv2.putText(frame, "⚠️ Warning: Overcrowding!", (300, 100), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 3)
-        else:
-            alert_played = False
+###
+alert_url = "https://raw.githubusercontent.com/Hanan71/MansakAmin_modul/main/alert.mp3"
+alert_played = False
 
-        stframe.image(frame, channels="BGR")
+if people_count >= target_count:
+    if not alert_played:
+        st.audio(alert_url, format='audio/mp3')  # Play sound via Streamlit
+        alert_played = True
+    cv2.putText(frame, "⚠️ Warning: Overcrowding!", (300, 100), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 3)
+else:
+    alert_played = False
+
+stframe.image(frame, channels="BGR")
+
+###
 
         if len(st.session_state.minute_data['timestamps']) > 0:
             fig_crowd = go.Figure()
