@@ -21,8 +21,10 @@ from datetime import datetime, timedelta
 model = YOLO('yolov5s.pt')
 with open("COCO.txt", "r") as f:
     class_list = f.read().strip().split("\n")
-    
 
+alert_url = "https://raw.githubusercontent.com/Hanan71/MansakAmin_modul/main/alert.mp3"
+alert_played = False
+    
 st.set_page_config(page_title="Mansak Amin", layout="wide", page_icon="🕋")
 st.markdown("""
     <h1 style='text-align: center; color: #104E8B;'>🕋 Mansak Amin</h1>
@@ -259,9 +261,6 @@ def process_video(video_path):
         cv2.putText(frame, f"Accuracy: {avg_accuracy:.2%}", (20, 80), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
         
 
-
-alert_url = "https://raw.githubusercontent.com/Hanan71/MansakAmin_modul/main/alert.mp3"
-alert_played = False
 
 if people_count >= target_count:
     if not alert_played:
