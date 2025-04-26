@@ -38,7 +38,7 @@ update_interval = 1
 st.sidebar.markdown("---")
 uploaded_image = st.sidebar.file_uploader("🔍 Upload image of missing person", type=["jpg", "png", "jpeg"])
 if uploaded_image:
-    st.sidebar.image(uploaded_image, caption="Uploaded Image", use_column_width=True)
+    st.sidebar.image(uploaded_image, caption="Uploaded Image", use_container_width=True)
 
 with st.container():
     stats = st.columns(4)
