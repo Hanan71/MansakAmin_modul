@@ -245,7 +245,7 @@ def process_video(video_path):
             """, unsafe_allow_html=True
         )
         
-        st.markdown(
+    st.markdown(
     f"""
     <audio autoplay>
         <source src="{alert_url}" type="audio/mp3">
@@ -254,11 +254,10 @@ def process_video(video_path):
     unsafe_allow_html=True
 )
 
-  
-        cv2.line(frame, (0, line_position), (1020, line_position), (0, 255, 0), 2)
-        cv2.putText(frame, f"People Count: {people_count}", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
-        cv2.putText(frame, f"Accuracy: {avg_accuracy:.2%}", (20, 80), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
-        
+
+cv2.line(frame, (0, line_position), (1020, line_position), (0, 255, 0), 2)
+cv2.putText(frame, f"People Count: {people_count}", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
+cv2.putText(frame, f"Accuracy: {avg_accuracy:.2%}", (20, 80), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
 
 if people_count >= target_count:
     if not alert_played:
@@ -271,34 +270,34 @@ else:
 stframe.image(frame, channels="BGR")
 
 if len(st.session_state.minute_data['timestamps']) > 0:
-            fig_crowd = go.Figure()
-            fig_crowd.add_trace(go.Scatter(
-                x=st.session_state.minute_data['timestamps'],
-                y=st.session_state.minute_data['people_counts'],
-                mode='lines+markers',
-                name='People Count',
-                line=dict(color='blue')
-            ))
-            fig_crowd.add_trace(go.Scatter(
-                x=st.session_state.minute_data['timestamps'],
-                y=[target_count]*len(st.session_state.minute_data['timestamps']),
-                mode='lines',
-                name='Threshold',
-                line=dict(color='red', dash='dash')
-            ))
-            fig_crowd.update_layout(
-                title="Crowd Trend (Updated every minute)",
-                xaxis_title="Time",
-                yaxis_title="People Count"
-            )
-            
+    fig_crowd = go.Figure()
+    fig_crowd.add_trace(go.Scatter(
+        x=st.session_state.minute_data['timestamps'],
+        y=st.session_state.minute_data['people_counts'],
+        mode='lines+markers',
+        name='People Count',
+        line=dict(color='blue')
+    ))
+    fig_crowd.add_trace(go.Scatter(
+        x=st.session_state.minute_data['timestamps'],
+        y=[target_count] * len(st.session_state.minute_data['timestamps']),
+        mode='lines',
+        name='Threshold',
+        line=dict(color='red', dash='dash')
+    ))
+    fig_crowd.update_layout(
+        title="Crowd Trend (Updated every minute)",
+        xaxis_title="Time",
+        yaxis_title="People Count"
+    )
 
-        last_people_count = people_count
 
-    if isinstance(video_path, int):
-        cam_thread.stop()
-    else:
-        cap.release()
+last_people_count = people_count
+
+if isinstance(video_path, int):
+    cam_thread.stop()
+else:
+    cap.release()
 
 if source == "📁 Upload Video":
     uploaded_file = st.file_uploader("Select a video file", type=["mp4", "avi", "mov"])
