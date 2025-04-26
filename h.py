@@ -262,7 +262,7 @@ else:
 
 stframe.image(frame, channels="BGR")
 
-        if len(st.session_state.minute_data['timestamps']) > 0:
+if len(st.session_state.minute_data['timestamps']) > 0:
             fig_crowd = go.Figure()
             fig_crowd.add_trace(go.Scatter(
                 x=st.session_state.minute_data['timestamps'],
