@@ -244,23 +244,13 @@ def process_video(video_path):
             </div>
             """, unsafe_allow_html=True
         )
-        
-        st.markdown(
-    f"""
-    <audio autoplay>
-        <source src="{alert_url}" type="audio/mp3">
-    </audio>
-    """,
-    unsafe_allow_html=True
-)
+  
 
       
-
         cv2.line(frame, (0, line_position), (1020, line_position), (0, 255, 0), 2)
         cv2.putText(frame, f"People Count: {people_count}", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
         cv2.putText(frame, f"Accuracy: {avg_accuracy:.2%}", (20, 80), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
         
-
 
 if people_count >= target_count:
     if not alert_played:
