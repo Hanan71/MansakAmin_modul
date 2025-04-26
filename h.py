@@ -242,12 +242,14 @@ def process_video(video_path):
             </div>
             """, unsafe_allow_html=True
         )
+      
 
         cv2.line(frame, (0, line_position), (1020, line_position), (0, 255, 0), 2)
         cv2.putText(frame, f"People Count: {people_count}", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
         cv2.putText(frame, f"Accuracy: {avg_accuracy:.2%}", (20, 80), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
+ 
 
-###
+
 alert_url = "https://raw.githubusercontent.com/Hanan71/MansakAmin_modul/main/alert.mp3"
 alert_played = False
 
@@ -260,8 +262,6 @@ else:
     alert_played = False
 
 stframe.image(frame, channels="BGR")
-
-###
 
         if len(st.session_state.minute_data['timestamps']) > 0:
             fig_crowd = go.Figure()
