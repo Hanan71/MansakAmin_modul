@@ -8,7 +8,6 @@ import numpy as np
 import time
 from datetime import timedelta
 import os
-import pygame  # إضافة مكتبة pygame
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase, RTCConfiguration
 import av
 import plotly.express as px
@@ -16,16 +15,12 @@ import plotly.graph_objects as go
 import threading
 from datetime import datetime, timedelta
 
-# تهيئة مكتبة pygame
-pygame.mixer.init()
-
-# تحميل ملف التنبيه الصوتي من داخل المشروع
-pygame.mixer.music.load("alert.mp3")
-
+# تحميل النموذج
 model = YOLO('yolov5s.pt')
 with open("COCO.txt", "r") as f:
     class_list = f.read().strip().split("\n")
 
+# إعداد الصفحة
 st.set_page_config(page_title="Mansak Amin", layout="wide", page_icon="🕋")
 st.markdown("""
     <h1 style='text-align: center; color: #104E8B;'>🕋 Mansak Amin</h1>
@@ -142,7 +137,6 @@ def process_video(video_path):
     counter = deque(maxlen=1000)
     line_position = 380
     offset = 6
-    alert_played = False
     start_time = time.time()
     last_people_count = 0
 
@@ -208,7 +202,7 @@ def process_video(video_path):
 
         people_placeholder.markdown(
             f"""
-            <div style="background-color: #007BFF; color: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+            <div style="background-color: #007BFF; color: white; padding: 20px; border-radius: 10px;">
                 <h3>👥 Current Count</h3>
                 <h2>{people_count}</h2>
                 <p>📈 Change: {percentage_change:.2f}%</p>
@@ -218,7 +212,7 @@ def process_video(video_path):
 
         time_placeholder.markdown(
             f"""
-            <div style="background-color: #28A745; color: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+            <div style="background-color: #28A745; color: white; padding: 20px; border-radius: 10px;">
                 <h3>⏱️ Time Elapsed</h3>
                 <h2>{elapsed_seconds // 60:02}:{elapsed_seconds % 60:02}</h2>
             </div>
@@ -226,10 +220,10 @@ def process_video(video_path):
         )
 
         status = "Overcrowded ⚠️" if people_count >= target_count else "Normal ✅"
-        status_color = "#FFC107" if status == "Normal ✅" else "#DC3545"
+        status_color = "#DC3545" if status == "Overcrowded ⚠️" else "#28A745"
         status_placeholder.markdown(
             f"""
-            <div style="background-color: {status_color}; color: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+            <div style="background-color: {status_color}; color: white; padding: 20px; border-radius: 10px;">
                 <h3>📊 Crowd Status</h3>
                 <h2>{status}</h2>
             </div>
@@ -238,7 +232,7 @@ def process_video(video_path):
 
         accuracy_placeholder.markdown(
             f"""
-            <div style="background-color: #6F42C1; color: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+            <div style="background-color: #6F42C1; color: white; padding: 20px; border-radius: 10px;">
                 <h3>🎯 Detection Accuracy</h3>
                 <h2>{avg_accuracy:.2%}</h2>
                 <p>Based on {len(confidences)} detections</p>
@@ -247,41 +241,11 @@ def process_video(video_path):
         )
 
         cv2.line(frame, (0, line_position), (1020, line_position), (0, 255, 0), 2)
-        cv2.putText(frame, f"People Count: {people_count}", (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
-        cv2.putText(frame, f"Accuracy: {avg_accuracy:.2%}", (20, 80), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
 
         if people_count >= target_count:
-            if not alert_played:
-                pygame.mixer.music.play()  # تشغيل الصوت
-                alert_played = True
             cv2.putText(frame, "⚠️ Warning: Overcrowding!", (300, 100), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 3)
-        else:
-            alert_played = False
 
         stframe.image(frame, channels="BGR")
-
-        if len(st.session_state.minute_data['timestamps']) > 0:
-            fig_crowd = go.Figure()
-            fig_crowd.add_trace(go.Scatter(
-                x=st.session_state.minute_data['timestamps'],
-                y=st.session_state.minute_data['people_counts'],
-                mode='lines+markers',
-                name='People Count',
-                line=dict(color='blue')
-            ))
-            fig_crowd.add_trace(go.Scatter(
-                x=st.session_state.minute_data['timestamps'],
-                y=[target_count]*len(st.session_state.minute_data['timestamps']),
-                mode='lines',
-                name='Threshold',
-                line=dict(color='red', dash='dash')
-            ))
-            fig_crowd.update_layout(
-                title="Crowd Trend (Updated every minute)",
-                xaxis_title="Time",
-                yaxis_title="People Count"
-            )
-            
 
         last_people_count = people_count
 
@@ -304,5 +268,3 @@ elif source == "📷 Laptop Camera":
 
 elif source == "📷 External Camera":
     process_video(1)
-
-    
