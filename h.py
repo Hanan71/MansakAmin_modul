@@ -9,7 +9,6 @@ import time
 import os
 import requests
 from datetime import datetime, timedelta
-import plotly.graph_objects as go
 import threading
 
 # Load YOLO model and class list
