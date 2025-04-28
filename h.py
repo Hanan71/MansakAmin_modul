@@ -9,6 +9,10 @@ from collections import deque
 from datetime import datetime, timedelta
 import plotly.graph_objects as go
 import threading
+import pygame  # Added pygame for the audio alert
+
+# Initialize pygame mixer for audio
+pygame.mixer.init()
 
 # إعداد المودل
 model = YOLO('yolov8n.pt')  # تأكد أن المسار صحيح
@@ -20,6 +24,12 @@ with open("COCO.txt", "r") as f:
 
 # رابط الصوت
 alert_url = "https://raw.githubusercontent.com/Hanan71/MansakAmin_modul/main/alert.mp3"
+# Download and load the alert sound
+alert_sound_file = "alert_sound.mp3"
+import requests
+with open(alert_sound_file, "wb") as f:
+    f.write(requests.get(alert_url).content)
+pygame.mixer.music.load(alert_sound_file)
 
 # إعداد صفحة Streamlit
 st.set_page_config(page_title="Mansak Amin", layout="wide", page_icon="🕋")
@@ -121,6 +131,12 @@ class Tracker:
         box2_area = (x4 - x3) * (y4 - y3)
         return inter_area / (box1_area + box2_area - inter_area + 1e-5)
 
+# Function to calculate percentage change safely
+def safe_percentage_change(current, previous):
+    if previous == 0:
+        return 0  # No change percentage if previous was 0
+    return ((current - previous) / previous * 100)
+
 # تحديث بيانات الرسم البياني
 def update_minute_data(current_count, current_accuracy):
     now = datetime.now()
@@ -187,13 +203,17 @@ def process_video(video_path):
         elapsed_seconds = int(time.time() - start_time)
         update_minute_data(people_count, avg_accuracy)
 
+        # Calculate percentage change safely
+        previous_count = st.session_state.minute_data['people_counts'][-2] if len(st.session_state.minute_data['people_counts']) > 1 else people_count
+        percent_change = safe_percentage_change(people_count, previous_count)
+
         # تحديث الواجهة
         people_placeholder.markdown(
             f"""
             <div style="background-color: #007BFF; color: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
                 <h3>👥 Current Count</h3>
                 <h2 style="display: inline-block; border-bottom: 4px solid #FFD700;">{people_count} ➤</h2>
-                <p>📈 Change: {((people_count - (st.session_state.minute_data['people_counts'][-2] if len(st.session_state.minute_data['people_counts'])>1 else people_count)) / (st.session_state.minute_data['people_counts'][-2] if len(st.session_state.minute_data['people_counts'])>1 else 1) * 100):.2f}%</p>
+                <p>📈 Change: {percent_change:.2f}%</p>
             </div>
             """, unsafe_allow_html=True
         )
@@ -260,9 +280,10 @@ def process_video(video_path):
         elif people_count < target_count:
             alert_played = False
             
+        # Play sound alert using pygame
         if people_count >= target_count:
             if not alert_played:
-                mixer.music.play()
+                pygame.mixer.music.play()
                 alert_played = True
             cv2.putText(frame, "⚠️ Warning: Overcrowding!", (300, 100), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 3)
         else:
@@ -292,3 +313,9 @@ elif source == "📷 Laptop Camera":
 
 elif source == "📷 External Camera":
     process_video(1)
+
+# Clean up temporary files when app closes
+try:
+    os.remove(alert_sound_file)
+except:
+    pass
