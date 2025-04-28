@@ -7,7 +7,6 @@ import os
 from ultralytics import YOLO
 from collections import deque
 from datetime import datetime, timedelta
-import plotly.graph_objects as go
 import threading
 
 # إعداد المودل
