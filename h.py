@@ -29,7 +29,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # اختيار المصدر
-source = st.sidebar.radio("Select Video Source:", ["📁 Upload Video", "📷 Laptop Camera", "📷 External Camera"])
+source = st.sidebar.radio("Select Video Source:", ["📁 Upload Video", "📷 Your Camera", "📷 External Camera"])
 target_count = 60  # عدد الأشخاص الذي نعتبره خطراً
 update_interval = 1  # كل دقيقة
 
